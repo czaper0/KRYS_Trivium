@@ -30,8 +30,7 @@ class Trivium:
     def algorithm(self,plaintext):
         N = len(plaintext[2:])*4
         z, t = [], [0]*3
-        # print()
-        # print(len(self.state),len(self.key),len(self.iv))
+        
         self.setup()
 
         for _ in range(N):
@@ -48,10 +47,9 @@ class Trivium:
             self.state[0:92] = [t[2], *self.state[0:91]]
             self.state[93:176] = [t[0], *self.state[93:175]]
             self.state[177:287] = [t[1], *self.state[177:286]]
-            # print(len(z))
-            #print(''.join([str(x) for x in self.state]))
-        # plaintext = bin(bytes_to_long(plaintext.encode()))[2:].zfill(N)
+            
         plaintext = bin(int(plaintext[2:],16))[2:].zfill(N)
+        print('z:',hex(int(''.join([str(x) for x in z]),2)))
         cipher = [a^int(b) for a,b in zip(z, plaintext)]
         cipher = ''.join([str(x) for x in cipher]).encode()
         cipher = hex(int(cipher,2))
@@ -68,11 +66,10 @@ if __name__ == "__main__":
     triv = Trivium()
     plaintext = "Hello"
     plaintext = hex(int(plaintext.encode().hex(),16))
-    print(plaintext)
+    print('plaintext:',plaintext)
     n, key, iv = triv.encrypt(plaintext)
-    print(n)
-    print('key:',''.join([str(x) for x in key]))
-    print('iv:',''.join([str(x) for x in iv]))
-    print(n)
+    print('ciphertext',n)
+    print('key:',hex(int(''.join([str(x) for x in key]),2)))
+    print('iv:',hex(int(''.join([str(x) for x in iv]),2)))
     n, key, iv = triv.decrypt(n)
-    print(n)
+    print('decrypted:',n)
