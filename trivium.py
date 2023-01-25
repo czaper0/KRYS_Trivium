@@ -1,22 +1,24 @@
 from Crypto.Random.random import randint
 
 class Trivium:
-    ''' Class description '''
+    ''' Class representing Trivium cipher '''
     
     def __init__(self):
+        ''' Constructor '''
         self.state = [0]*288
+        self.key = [randint(0, 1) for _ in range(80)]
+        self.iv = [randint(0, 1) for _ in range(80)]
 
-    def setup(self):
-        ''' Function description '''        
-        key  = self.key
-        iv  = self.iv
+    def setup(self, key, iv):
+        ''' Key and IV setup '''        
         t = [0, 0, 0]
         
-        # Add comment
+        # Loading key and IV into registers
         self.state[:93] = [*key, *[0]*13]
         self.state[93:177] = [*iv, *[0]*4]
         self.state[177:288] = [*[0]*108, 1, 1, 1]
         
+        # 4 full Trivium cycles
         for _ in range(4*288):
             t[0] = self.state[65] ^ self.state[90] & self.state[91] ^ self.state[92] ^ self.state[170]
             t[1] = self.state[161] ^ self.state[174] & self.state[175] ^ self.state[176] ^ self.state[263]
@@ -33,19 +35,17 @@ class Trivium:
             # Register 3 shift
             self.state[178:288] = self.state[177:287]
             self.state[177] = t[1]
-    
-    def generate_keys(self):
-        ''' Add function description '''
-        self.key = [randint(0,1) for _ in range(80)]
-        self.iv = [randint(0,1) for _ in range(80)]
 
-    def algorithm(self, plaintext):
-        ''' Add function description'''
-        N = len(plaintext[2:])*4
+    def get_keystream(self, N : int, key=None, iv=None):
+        ''' Generate key stream '''
         t = [0, 0, 0]
         key_stream = []
         
-        self.setup()
+        # Checking if encrypting or decrypting
+        if key is None: key = self.key
+        if iv is None: iv = self.iv
+        
+        self.setup(key, iv)
 
         for _ in range(N):
             t[0] = self.state[65] ^ self.state[92]
@@ -70,29 +70,32 @@ class Trivium:
             self.state[178:288] = self.state[177:287]
             self.state[177] = t[1]
         
-        plaintext = bin(int(plaintext[2:], 16))[2:].zfill(N)
-        cipher = [a^int(b) for a, b in zip(key_stream, plaintext)]
-        cipher = ''.join([str(x) for x in cipher]).encode()
-        cipher = hex(int(cipher, 2))
+        return key_stream, key, iv
+
+    def encrypt(self, plaintext : str) -> str:
+        ''' Plaintext encrypyion '''
+        plaintext_hex = plaintext.encode().hex()
+        N = len(plaintext_hex)*2
+
+        plaintext_bin = bin(int(plaintext_hex, 16))[2:].zfill(N)
+        key_stream, key, iv = self.get_keystream(N)
         
-        return cipher, self.key, self.iv 
+        print(f'Key 80-bit: {"".join([str(k) for k in key])}')
+        print(f'IV 80-bit: {"".join([str(i) for i in iv])}')
+        print(f'Key stream: {"".join([str(s) for s in key_stream])}')
 
-    def encrypt(self, plaintext):
-        self.generate_keys()
-        return self.algorithm(plaintext)
+        cipher = [a^int(b) for a, b in zip(key_stream, plaintext_bin)]
+        cipher = ''.join([str(c) for c in cipher])
+        
+        return hex(int(cipher, 2))
 
-    def decrypt(self, ciphertext):
+    def decrypt(self, ciphertext, key, iv) -> str:
+        ''' Ciphertext encryption '''
         return self.algorithm(ciphertext)
         
 if __name__ == "__main__":
-    triv = Trivium()
+    trivium = Trivium()
     plaintext = "Hello"
-    plaintext = hex(int(plaintext.encode().hex(),16))
-    print('plaintext:',plaintext)
-    n, key, iv = triv.encrypt(plaintext)
-    print('ciphertext',n)
-    print('key:',hex(int(''.join([str(x) for x in key]),2)))
-    print('iv:',hex(int(''.join([str(x) for x in iv]),2)))
-    n, key, iv = triv.decrypt(n)
-    print('decrypted:',n)
-    
+    print('Plaintext:', plaintext)
+    ciphertext = trivium.encrypt(plaintext)
+    print('Ciphertext:', ciphertext)
