@@ -1,5 +1,5 @@
 from Crypto.Random.random import randint
-
+import argparse
 class Trivium:
     ''' Class representing Trivium cipher '''
     
@@ -73,16 +73,17 @@ class Trivium:
         return key_stream, key, iv
 
     def encrypt(self, plaintext : str) -> str:
-        ''' Plaintext encrypyion '''
+        ''' Plaintext encryption '''
         plaintext_hex = plaintext.encode().hex()
-        N = len(plaintext_hex)*2
+        N = len(plaintext_hex)*4
 
         plaintext_bin = bin(int(plaintext_hex, 16))[2:].zfill(N)
         key_stream, key, iv = self.get_keystream(N)
         
-        print(f'Key 80-bit: {"".join([str(k) for k in key])}')
-        print(f'IV 80-bit: {"".join([str(i) for i in iv])}')
-        print(f'Key stream: {"".join([str(s) for s in key_stream])}')
+        print(f'Plaintext (hex):  0x{plaintext_hex}')
+        print(f'Key 80-bit:       {"".join([str(k) for k in key])}')
+        print(f'IV 80-bit:        {"".join([str(i) for i in iv])}')
+        print(f'Key stream:       {"".join([str(s) for s in key_stream])}')
 
         cipher = [a^int(b) for a, b in zip(key_stream, plaintext_bin)]
         cipher = ''.join([str(c) for c in cipher])
@@ -90,12 +91,44 @@ class Trivium:
         return hex(int(cipher, 2))
 
     def decrypt(self, ciphertext, key, iv) -> str:
-        ''' Ciphertext encryption '''
-        return self.algorithm(ciphertext)
-        
+        ''' Ciphertext decryption '''
+        self.key = key
+        self.iv = iv
+        ciphertext_hex = ciphertext
+        print('Ciphertext (hex):', ciphertext_hex,'type:',type(ciphertext_hex))
+        N = len(ciphertext_hex)*4
+
+        plaintext_bin = bin(int(ciphertext_hex, 16))[2:].zfill(N)
+        key_stream, key, iv = self.get_keystream(N,key,iv)
+        print(f'Key stream: {"".join([str(s) for s in key_stream])}')
+
+        plaintext = [a^int(b) for a, b in zip(key_stream, plaintext_bin)]
+        plaintext = ''.join([str(p) for p in plaintext])
+
+        return hex(int(plaintext, 2))
+
 if __name__ == "__main__":
     trivium = Trivium()
-    plaintext = "Hello"
-    print('Plaintext:', plaintext)
-    ciphertext = trivium.encrypt(plaintext)
-    print('Ciphertext:', ciphertext)
+    argParser = argparse.ArgumentParser()
+    argParser.add_argument("-e", "--encrypt", help="message to encrypt (text)")
+    argParser.add_argument("-d", "--decrypt", help="message to decrypt (hex)")
+    argParser.add_argument("-k", "--key", help="key to decrypt (bin)")
+    argParser.add_argument("-i", "--iv", help="iv to decrypt (bin)")
+    args = argParser.parse_args()
+    if args.encrypt:
+        print('Ciphertext (hex):', trivium.encrypt(args.encrypt))
+    elif args.decrypt:
+        if args.key and args.iv:
+            trivium.key = [int(k) for k in args.key]
+            trivium.iv = [int(i) for i in args.iv]
+            plaintext = trivium.decrypt(args.decrypt, trivium.key, trivium.iv)
+            print('Plaintext:', plaintext,'->', bytes.fromhex(plaintext[2:]).decode(errors='ignore'))
+        else:
+            print('Key and IV are required to decrypt, use -h for help')
+    else:
+        print('No arguments provided, use -h for help')
+    
+    # plaintext = "Hello" 
+    # print('Plaintext:', plaintext)
+    # ciphertext = trivium.encrypt(plaintext)
+    # print('Ciphertext:', ciphertext)
