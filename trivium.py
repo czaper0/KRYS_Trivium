@@ -109,12 +109,16 @@ class Trivium:
 
 if __name__ == "__main__":
     trivium = Trivium()
+
+    # Parsing arguments
     argParser = argparse.ArgumentParser()
     argParser.add_argument("-e", "--encrypt", help="message to encrypt (text)")
     argParser.add_argument("-d", "--decrypt", help="message to decrypt (hex)")
     argParser.add_argument("-k", "--key", help="key to decrypt (bin)")
     argParser.add_argument("-i", "--iv", help="iv to decrypt (bin)")
     args = argParser.parse_args()
+    
+    # Encrypting or decrypting
     if args.encrypt:
         print('Ciphertext (hex):', trivium.encrypt(args.encrypt))
     elif args.decrypt:
@@ -127,8 +131,3 @@ if __name__ == "__main__":
             print('Key and IV are required to decrypt, use -h for help')
     else:
         print('No arguments provided, use -h for help')
-    
-    # plaintext = "Hello" 
-    # print('Plaintext:', plaintext)
-    # ciphertext = trivium.encrypt(plaintext)
-    # print('Ciphertext:', ciphertext)
